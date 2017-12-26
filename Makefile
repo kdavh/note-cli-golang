@@ -4,7 +4,10 @@ install:
 	go install
 
 update:
-	# if updates happened elsewhere, use git to manually pull changes, then `make install`
-	# `git pull && go install`
-	# or just have go pull and build:
-	go install github.com/kdavh/note-cli-golang
+	# if updates happened elsewhere, this gets those updates
+	# while keeping other things, like custom local git remotes
+	go get -u github.com/kdavh/note-cli-golang
+
+fix-git:
+	# golang automatically pulls using https, switch to ssh:
+	git remote set-url origin git@github.com:kdavh/note-cli-golang.git

@@ -9,18 +9,18 @@ import (
 	"strings"
 )
 
-type newNoteCmd struct {
+type noteNewCmdHandler struct {
 	Handler  *parser.CmdClause
 	Tags     *string
 	FileName *string
 	Ns       *string
 }
 
-func (c *newNoteCmd) FullCommand() string {
+func (c *noteNewCmdHandler) FullCommand() string {
 	return c.Handler.FullCommand()
 }
 
-func (c *newNoteCmd) Run() bool {
+func (c *noteNewCmdHandler) Run() bool {
 	if match, _ := regexp.MatchString("\\.md$", *c.FileName); !match {
 		fmt.Printf("%s must end with `.md`, exiting\n", *c.FileName)
 		os.Exit(1)
@@ -46,7 +46,7 @@ func (c *newNoteCmd) Run() bool {
 	return true
 }
 
-func createNewNoteCmd(app *parser.Application) newNoteCmd {
+func createNoteNewCmdHandler(app *parser.Application) noteNewCmdHandler {
 	newNote := app.Command("new", "New note.")
 
 	newNoteName := newNote.Arg("name", "Name of note file, must end in `.md`.").Required().String()
@@ -63,7 +63,7 @@ func createNewNoteCmd(app *parser.Application) newNoteCmd {
 		newNoteNs         = newNoteNsFlag.String()
 	)
 
-	return newNoteCmd{
+	return noteNewCmdHandler{
 		Handler:  newNote,
 		Tags:     newNoteTags,
 		FileName: newNoteName,

@@ -8,10 +8,10 @@ import (
 const TAGLINE = "###-tags-:"
 
 func main() {
-	var app = parser.New("note", "A command-line note keeping application with tags.")
+	app := parser.New("note", "A command-line note keeping application with tags.")
 	app.HelpFlag.Short('h')
 
-	newNoteHandler := createNewNoteCmd(app)
+	noteNewCmdHandler := createNoteNewCmdHandler(app)
 	var (
 	//debug    = app.Flag("debug", "Enable debug mode.").Bool()
 	//serverIP = app.Flag("server", "Server address.").Default("127.0.0.1").IP()
@@ -25,8 +25,8 @@ func main() {
 	// parser fills in values of flags and args here
 	switch parser.MustParse(app.Parse(os.Args[1:])) {
 	// new note
-	case newNoteHandler.Handler.FullCommand():
-		newNoteHandler.Run()
+	case noteNewCmdHandler.FullCommand():
+		noteNewCmdHandler.Run()
 		// Post message
 		//case post.FullCommand():
 		//if *postImage != nil {

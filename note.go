@@ -12,6 +12,7 @@ func main() {
 	app.HelpFlag.Short('h')
 
 	noteNewCmdHandler := createNoteNewCmdHandler(app)
+	noteFindCmdHandler := createNoteFindCmdHandler(app)
 	var (
 	//debug    = app.Flag("debug", "Enable debug mode.").Bool()
 	//serverIP = app.Flag("server", "Server address.").Default("127.0.0.1").IP()
@@ -27,6 +28,8 @@ func main() {
 	// new note
 	case noteNewCmdHandler.FullCommand():
 		noteNewCmdHandler.Run()
+	case noteFindCmdHandler.FullCommand():
+		noteFindCmdHandler.Run()
 		// Post message
 		//case post.FullCommand():
 		//if *postImage != nil {

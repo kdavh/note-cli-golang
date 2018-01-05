@@ -1,13 +1,30 @@
 package main
 
 import (
+	"github.com/kdavh/note-cli-golang/nlog"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 	"os"
 )
 
 const TAGLINE = "###-tags-:"
 
+type AppConfig struct {
+	SearchApp string
+}
+
+type AppContext struct {
+	Logger *nlog.Logger
+}
+
 func main() {
+	appContext := AppContext{
+		Logger: nlog.New(nlog.DEBUG),
+	}
+
+	appConfig := AppConfig{
+		SearchApp: "ag",
+	}
+
 	app := parser.New("note", "A command-line note keeping application with tags.")
 	app.HelpFlag.Short('h')
 
@@ -29,7 +46,7 @@ func main() {
 	case noteNewCmdHandler.FullCommand():
 		noteNewCmdHandler.Run()
 	case noteFindCmdHandler.FullCommand():
-		noteFindCmdHandler.Run()
+		noteFindCmdHandler.Run(appConfig, appContext)
 		// Post message
 		//case post.FullCommand():
 		//if *postImage != nil {

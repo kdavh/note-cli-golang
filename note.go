@@ -1,13 +1,16 @@
 package main
 
 import (
+	//"fmt"
 	"github.com/kdavh/note-cli-golang/cmdnfind"
 	"github.com/kdavh/note-cli-golang/cmdnnew"
+	"github.com/kdavh/note-cli-golang/cmdtag"
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nlog"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -28,6 +31,8 @@ func main() {
 
 	noteNewCmdHandler := cmdnnew.NewHandler(app)
 	noteFindCmdHandler := cmdnfind.NewHandler(app)
+
+	tagCmdHandler := cmdtag.NewHandler(app)
 	var (
 	//debug    = app.Flag("debug", "Enable debug mode.").Bool()
 	//serverIP = app.Flag("server", "Server address.").Default("127.0.0.1").IP()
@@ -39,22 +44,17 @@ func main() {
 	)
 
 	// parser fills in values of flags and args here
-	subcommand := parser.MustParse(app.Parse(os.Args[1:]))
+	subcommands := strings.Split(parser.MustParse(app.Parse(os.Args[1:])), " ")
 	if *verbose {
 		appContext.Logger = nlog.New(nlog.DEBUG)
 	}
 
-	switch subcommand {
-	// new note
+	switch subcommands[0] {
 	case noteNewCmdHandler.FullCommand():
 		noteNewCmdHandler.Run(appConfig, appContext)
 	case noteFindCmdHandler.FullCommand():
 		noteFindCmdHandler.Run(appConfig, appContext)
-		// Post message
-		//case post.FullCommand():
-		//if *postImage != nil {
-		//}
-		//text := strings.Join(*postText, " ")
-		//println("Post:", text)
+	case tagCmdHandler.FullCommand():
+		tagCmdHandler.Run(appConfig, appContext, subcommands)
 	}
 }

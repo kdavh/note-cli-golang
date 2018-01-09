@@ -1,9 +1,9 @@
-package main
+package nparse
 
 import (
 	"strings"
 )
 
-func parseCommaList(s string) []string {
+func CommaListtoa(s string) []string {
 	return strings.Split(s, ",")
 }

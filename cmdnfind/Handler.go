@@ -1,7 +1,11 @@
-package main
+package cmdnfind
 
 import (
 	"fmt"
+	"github.com/kdavh/note-cli-golang/nconfig"
+	"github.com/kdavh/note-cli-golang/nctx"
+	"github.com/kdavh/note-cli-golang/nflag"
+	"github.com/kdavh/note-cli-golang/nparse"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"os/exec"
@@ -12,18 +16,18 @@ import (
 	"strings"
 )
 
-type noteFindCmdHandler struct {
+type Handler struct {
 	handler   *parser.CmdClause
 	tags      *string
 	namespace *string
 }
 
-func (c *noteFindCmdHandler) FullCommand() string {
+func (c *Handler) FullCommand() string {
 	return c.handler.FullCommand()
 }
 
-func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
-	ctx.Logger.Debugf("SEARCH TAGS %v\n", parseCommaList(*c.tags))
+func (c *Handler) Run(config nconfig.Config, ctx nctx.Context) bool {
+	ctx.Logger.Debugf("SEARCH TAGS %v\n", nparse.CommaListtoa(*c.tags))
 	notesPath := filepath.Join(os.Getenv("DOTFILES"), "notes")
 	searchDepth := "0"
 
@@ -41,7 +45,7 @@ func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
 		}
 	} else {
 		// namespace is specified
-		for _, ns := range parseCommaList(*c.namespace) {
+		for _, ns := range nparse.CommaListtoa(*c.namespace) {
 			dir := filepath.Join(notesPath, ns)
 			info, err := os.Stat(dir)
 			if err != nil {
@@ -59,11 +63,11 @@ func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
 
 	var tagsLookaheads []string
 
-	for _, tag := range parseCommaList(*c.tags) {
+	for _, tag := range nparse.CommaListtoa(*c.tags) {
 		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=\\s+%s(\\s+|$))", tag))
 	}
 
-	searchCmd := config.SearchApp + " \"" + TAGLINE + strings.Join(tagsLookaheads, "|") + "\" --files-with-matches --depth=" + searchDepth + " " + strings.Join(findGlobs, " ")
+	searchCmd := config.SearchApp + " \"" + config.Tagline + strings.Join(tagsLookaheads, "|") + "\" --files-with-matches --depth=" + searchDepth + " " + strings.Join(findGlobs, " ")
 	ctx.Logger.Debugf("SEARCH COMMAND: %s\n", searchCmd)
 
 	if output, cmdErr := exec.Command("zsh", "-c", searchCmd).Output(); cmdErr != nil {
@@ -110,13 +114,13 @@ func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
 	return true
 }
 
-func createNoteFindCmdHandler(app *parser.Application) noteFindCmdHandler {
+func NewHandler(app *parser.Application) Handler {
 	findNote := app.Command("find", "Find note.")
 
-	findNoteTags := handleTagsFlag(findNote)
-	findNoteNamespace := handleNamespaceFlag(findNote)
+	findNoteTags := nflag.HandleTags(findNote)
+	findNoteNamespace := nflag.HandleNamespace(findNote)
 
-	return noteFindCmdHandler{
+	return Handler{
 		handler:   findNote,
 		tags:      findNoteTags,
 		namespace: findNoteNamespace,

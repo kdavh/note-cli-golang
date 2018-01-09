@@ -10,6 +10,7 @@ const TAGLINE = "###-tags-:"
 
 type AppConfig struct {
 	SearchApp string
+	Editor    string
 }
 
 type AppContext struct {
@@ -23,6 +24,7 @@ func main() {
 
 	appConfig := AppConfig{
 		SearchApp: "ag",
+		Editor:    "nvim",
 	}
 
 	app := parser.New("note", "A command-line note keeping application with tags.")
@@ -44,7 +46,7 @@ func main() {
 	switch parser.MustParse(app.Parse(os.Args[1:])) {
 	// new note
 	case noteNewCmdHandler.FullCommand():
-		noteNewCmdHandler.Run()
+		noteNewCmdHandler.Run(appConfig, appContext)
 	case noteFindCmdHandler.FullCommand():
 		noteFindCmdHandler.Run(appConfig, appContext)
 		// Post message

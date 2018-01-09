@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	//"regexp"
+	"github.com/kdavh/note-cli-golang/nflow"
+	"strconv"
 	"strings"
 )
 
@@ -21,7 +23,7 @@ func (c *noteFindCmdHandler) FullCommand() string {
 }
 
 func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
-	ctx.Logger.Debugf("%v\n", parseCommaList(*c.tags))
+	ctx.Logger.Debugf("SEARCH TAGS %v\n", parseCommaList(*c.tags))
 	notesPath := filepath.Join(os.Getenv("DOTFILES"), "notes")
 	searchDepth := "0"
 
@@ -46,23 +48,23 @@ func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
 				fmt.Println(err)
 				os.Exit(1)
 			} else if !info.Mode().IsDir() {
-				fmt.Printf("\"%s\" is not a valid namespace (not a directory)\n", ns)
+				ctx.Logger.Errorf("\"%s\" is not a valid namespace (not a directory)\n", ns)
 				os.Exit(1)
 			}
 
 			findGlobs = append(findGlobs, dir)
 		}
 	}
-	fmt.Printf("dir globs: %v\n", findGlobs)
+	ctx.Logger.Debugf("SEARCH DIRS: %v\n", findGlobs)
 
 	var tagsLookaheads []string
 
 	for _, tag := range parseCommaList(*c.tags) {
-		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=(.*,)?\\s*%s\\s*(,|$))", tag))
+		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=\\s+%s(\\s+|$))", tag))
 	}
 
 	searchCmd := config.SearchApp + " \"" + TAGLINE + strings.Join(tagsLookaheads, "|") + "\" --files-with-matches --depth=" + searchDepth + " " + strings.Join(findGlobs, " ")
-	ctx.Logger.Debugf("COMMAND: %s\n", searchCmd)
+	ctx.Logger.Debugf("SEARCH COMMAND: %s\n", searchCmd)
 
 	if output, cmdErr := exec.Command("zsh", "-c", searchCmd).Output(); cmdErr != nil {
 		if cmdErr.Error() == "exit status 1" {
@@ -73,8 +75,36 @@ func (c *noteFindCmdHandler) Run(config AppConfig, ctx AppContext) bool {
 
 		os.Exit(1)
 	} else {
+		var chosenFile string
 		// TODO; prompt for file name most relevant, display
 		fmt.Printf(string(output))
+		files := strings.Split(strings.TrimSpace(string(output)), "\n")
+
+		if len(files) == 0 {
+			ctx.Logger.Error("Should never reach here... blurg")
+			os.Exit(1)
+		} else if len(files) == 0 {
+			chosenFile = files[0]
+		} else {
+			fmt.Println("Choose an option:")
+			for i, file := range files {
+				fmt.Printf("%s) %s\n", strconv.Itoa(i+1), file)
+			}
+
+			var input string
+			fmt.Scanln(&input)
+
+			chosenNumber, choiceErr := strconv.Atoi(input)
+
+			if choiceErr != nil || chosenNumber > len(files) {
+				fmt.Printf("\"%s\" is not a valid choice!\n", input)
+				os.Exit(1)
+			}
+
+			chosenFile = files[chosenNumber-1]
+		}
+
+		nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger)
 	}
 
 	return true

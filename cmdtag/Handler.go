@@ -6,44 +6,41 @@ import (
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nflag"
-	//"github.com/kdavh/note-cli-golang/nflow"
-	//"github.com/kdavh/note-cli-golang/nparse"
 	parser "gopkg.in/alecthomas/kingpin.v2"
-	//"os"
-	//"path/filepath"
-	//"regexp"
-	"strings"
 )
 
 type Handler struct {
 	handler     *parser.CmdClause
 	namespace   *string
 	listHandler *cmdtaglist.Handler
+	config      *nconfig.Config
+	ctx         *nctx.Context
 }
 
-func (c *Handler) FullCommand() string {
-	return c.handler.FullCommand()
+func (c *Handler) CanHandle(commands []string) bool {
+	return len(commands) > 0 && c.handler.FullCommand() == commands[0]
 }
 
-func (c *Handler) Run(config nconfig.Config, ctx nctx.Context, cmds []string) bool {
-	switch strings.Join(cmds, " ") {
-	case c.listHandler.FullCommand():
-		c.listHandler.Run(config, ctx)
+func (c *Handler) Run(cmds []string) bool {
+	if c.listHandler.CanHandle(cmds) {
+		c.listHandler.Run()
 	}
 
 	return true
 }
 
-func NewHandler(app *parser.Application) *Handler {
+func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Context) *Handler {
 	tagHandler := app.Command("tag", "Tag commands.")
 
 	tagNamespace := nflag.HandleNamespace(tagHandler)
 
-	tagListHandler := cmdtaglist.NewHandler(tagHandler)
+	tagListHandler := cmdtaglist.NewHandler(tagHandler, tagNamespace, config, ctx)
 
 	return &Handler{
 		handler:     tagHandler,
 		namespace:   tagNamespace,
 		listHandler: tagListHandler,
+		config:      config,
+		ctx:         ctx,
 	}
 }

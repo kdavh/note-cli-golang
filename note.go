@@ -1,7 +1,7 @@
 package main
 
 import (
-	//"fmt"
+	"fmt"
 	"github.com/kdavh/note-cli-golang/cmdnfind"
 	"github.com/kdavh/note-cli-golang/cmdnnew"
 	"github.com/kdavh/note-cli-golang/cmdtag"
@@ -10,18 +10,20 @@ import (
 	"github.com/kdavh/note-cli-golang/nlog"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
-	appContext := nctx.Context{
+	appContext := &nctx.Context{
 		Logger: nlog.New(nlog.ERROR),
 	}
 
-	appConfig := nconfig.Config{
+	appConfig := &nconfig.Config{
 		SearchApp: "ag",
 		Editor:    "nvim",
 		Tagline:   "###-tags-:",
+		NotesPath: filepath.Join(os.Getenv("DOTFILES"), "notes"),
 	}
 
 	app := parser.New("note", "A command-line note keeping application with tags.")
@@ -29,32 +31,22 @@ func main() {
 
 	verbose := app.Flag("verbose", "Enable debug mode.").Short('v').Bool()
 
-	noteNewCmdHandler := cmdnnew.NewHandler(app)
-	noteFindCmdHandler := cmdnfind.NewHandler(app)
-
-	tagCmdHandler := cmdtag.NewHandler(app)
-	var (
-	//debug    = app.Flag("debug", "Enable debug mode.").Bool()
-	//serverIP = app.Flag("server", "Server address.").Default("127.0.0.1").IP()
-
-	//post      = app.Command("post", "Post a message to a channel.")
-	//postImage = post.Flag("image", "Image to post.").File()
-	//postChannel = post.Arg("channel", "Channel to post to.").Required().String()
-	//postText = post.Arg("text", "Text to post.").Strings()
-	)
+	noteNewCmdHandler := cmdnnew.NewHandler(app, appConfig, appContext)
+	noteFindCmdHandler := cmdnfind.NewHandler(app, appConfig, appContext)
+	tagCmdHandler := cmdtag.NewHandler(app, appConfig, appContext)
 
 	// parser fills in values of flags and args here
-	subcommands := strings.Split(parser.MustParse(app.Parse(os.Args[1:])), " ")
+	commands := strings.Split(parser.MustParse(app.Parse(os.Args[1:])), " ")
+	fmt.Printf("%v\n\n", commands)
 	if *verbose {
 		appContext.Logger = nlog.New(nlog.DEBUG)
 	}
 
-	switch subcommands[0] {
-	case noteNewCmdHandler.FullCommand():
-		noteNewCmdHandler.Run(appConfig, appContext)
-	case noteFindCmdHandler.FullCommand():
-		noteFindCmdHandler.Run(appConfig, appContext)
-	case tagCmdHandler.FullCommand():
-		tagCmdHandler.Run(appConfig, appContext, subcommands)
+	if noteNewCmdHandler.CanHandle(commands) {
+		noteNewCmdHandler.Run()
+	} else if noteFindCmdHandler.CanHandle(commands) {
+		noteFindCmdHandler.Run()
+	} else if tagCmdHandler.CanHandle(commands) {
+		tagCmdHandler.Run(commands)
 	}
 }

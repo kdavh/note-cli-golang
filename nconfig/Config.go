@@ -4,4 +4,5 @@ type Config struct {
 	SearchApp string
 	Editor    string
 	Tagline   string
+	NotesPath string
 }

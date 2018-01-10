@@ -19,20 +19,25 @@ type Handler struct {
 	tags      *string
 	fileName  *string
 	namespace *string
+	ctx       *nctx.Context
+	config    *nconfig.Config
 }
 
-func (c *Handler) FullCommand() string {
-	return c.handler.FullCommand()
+func (c *Handler) CanHandle(commands []string) bool {
+	return len(commands) > 0 && c.handler.FullCommand() == commands[0]
 }
 
-func (c *Handler) Run(config nconfig.Config, ctx nctx.Context) bool {
+func (c *Handler) Run() bool {
+	ctx := c.ctx
+	config := c.config
+
 	if match, _ := regexp.MatchString("\\.md$", *c.fileName); !match {
 		fmt.Printf("%s must end with `.md`, exiting\n", *c.fileName)
 		os.Exit(1)
 	}
 
-	fmt.Printf("%v\n", nparse.CommaListtoa(*c.tags))
-	newNoteDir := filepath.Join(os.Getenv("DOTFILES"), "notes", *c.namespace)
+	fmt.Printf("%v\n", nparse.CommaSplit(*c.tags))
+	newNoteDir := filepath.Join(config.NotesPath, *c.namespace)
 	os.MkdirAll(newNoteDir, 0755)
 	filename := filepath.Join(newNoteDir, *c.fileName)
 	if _, statErr := os.Stat(filename); os.IsExist(statErr) {
@@ -43,7 +48,7 @@ func (c *Handler) Run(config nconfig.Config, ctx nctx.Context) bool {
 		file, newFileErr := os.Create(filename)
 		nflow.ErrExit(newFileErr, ctx.Logger)
 
-		data := config.Tagline + " " + strings.Join(nparse.CommaListtoa(*c.tags), " ")
+		data := config.Tagline + " " + strings.Join(nparse.CommaSplit(*c.tags), " ")
 		fmt.Fprintf(file, data)
 		file.Close()
 
@@ -53,7 +58,7 @@ func (c *Handler) Run(config nconfig.Config, ctx nctx.Context) bool {
 	return true
 }
 
-func NewHandler(app *parser.Application) Handler {
+func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Context) *Handler {
 	newNote := app.Command("new", "New note.")
 
 	newNoteName := newNote.Arg(
@@ -64,10 +69,12 @@ func NewHandler(app *parser.Application) Handler {
 	newNoteTags := nflag.HandleTags(newNote)
 	newNoteNamespace := nflag.HandleNamespace(newNote)
 
-	return Handler{
+	return &Handler{
 		handler:   newNote,
 		tags:      newNoteTags,
 		fileName:  newNoteName,
 		namespace: newNoteNamespace,
+		config:    config,
+		ctx:       ctx,
 	}
 }

@@ -29,26 +29,6 @@ func (c *Handler) CanHandle(commands []string) bool {
 }
 
 func (c *Handler) Run() bool {
-	//ctx.logger.out("TAGS:")
-	//notes_glob = "#{cfg.notes_dir}/*.md"
-	//namespaced_notes_glob = "#{cfg.notes_dir}/**/*.md"
-	//search_prg = 'ag'
-
-	//find_tag_lines_cmd = "#{search_prg} --nofilename \"#{cfg.file_tags_header}\" #{notes_glob} #{namespaced_notes_glob}"
-
-	//ctx.logger.debug find_tag_lines_cmd
-
-	//tag_lines = `#{find_tag_lines_cmd}`.split("\n").map { |tag_line| tag_line.sub(cfg.file_tags_header, '').strip }
-
-	//tags = SortedSet.new
-
-	//tag_lines.each do |line|
-	//tags.merge(
-	//line.sub(cfg.file_tags_header, '').split(/\s*,\s*/)
-	//)
-	//end
-
-	//ctx.logger.out "\t" + tags.to_a.join("\n\t")
 	cfg := c.config
 	ctx := c.ctx
 

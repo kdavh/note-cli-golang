@@ -39,7 +39,7 @@ func (c *Handler) Run() bool {
 	var tagsLookaheads []string
 
 	for _, tag := range nparse.CommaSplit(*c.tags) {
-		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=\\s+%s(\\s+|$))", tag))
+		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=.*\\s+%s(\\s+|\\$))", tag))
 	}
 
 	searchCmd := config.SearchApp + " \"" + config.Tagline + strings.Join(tagsLookaheads, "|") + "\" --files-with-matches --depth=" + searchDepth + " " + strings.Join(findGlobs, " ")

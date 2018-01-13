@@ -20,6 +20,7 @@ type Handler struct {
 	handler   *parser.CmdClause
 	tags      *string
 	namespace *string
+	open      *bool
 	config    *nconfig.Config
 	ctx       *nctx.Context
 }
@@ -34,56 +35,63 @@ func (c *Handler) Run() bool {
 
 	ctx.Logger.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
 
-	findGlobs, searchDepth := cmdhelp.FileGlobs(*c.namespace, config, ctx)
+	fileGlobs, searchDepth := cmdhelp.FileGlobs(*c.namespace, config, ctx)
 
 	var tagsLookaheads []string
-
 	for _, tag := range nparse.CommaSplit(*c.tags) {
 		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=.*\\s+%s(\\s+|\\$))", tag))
 	}
 
-	searchCmd := config.SearchApp + " \"" + config.Tagline + strings.Join(tagsLookaheads, "|") + "\" --files-with-matches --depth=" + searchDepth + " " + strings.Join(findGlobs, " ")
-	ctx.Logger.Debugf("SEARCH COMMAND: %s\n", searchCmd)
+	cmd := exec.Command(config.SearchApp, append([]string{
+		config.Tagline + strings.Join(tagsLookaheads, "|"),
+		"--files-with-matches",
+		"--depth=" + searchDepth,
+	}, fileGlobs...)...)
 
-	if output, cmdErr := exec.Command("zsh", "-c", searchCmd).Output(); cmdErr != nil {
+	ctx.Logger.Debugf("SEARCH COMMAND: %s\n", strings.Join(cmd.Args, " "))
+
+	if output, cmdErr := cmd.Output(); cmdErr != nil {
 		if cmdErr.Error() == "exit status 1" {
 			ctx.Logger.Error("No relevant files found")
 		} else {
-			ctx.Logger.Errorf("COMMAND FAILED: %s\nerror: %s", searchCmd, cmdErr)
+			ctx.Logger.Errorf("COMMAND FAILED: %s", cmdErr)
 		}
 
 		os.Exit(1)
 	} else {
-		var chosenFile string
-		// TODO; prompt for file name most relevant, display
-		fmt.Printf(string(output))
 		files := strings.Split(strings.TrimSpace(string(output)), "\n")
 
-		if len(files) == 0 {
-			ctx.Logger.Error("Should never reach here... blurg")
-			os.Exit(1)
-		} else if len(files) == 1 {
-			chosenFile = files[0]
+		if *c.open {
+			var chosenFile string
+
+			if len(files) == 1 {
+				chosenFile = files[0]
+			} else {
+				fmt.Println("Choose an option:")
+				for i, file := range files {
+					fmt.Printf("%s) %s\n", strconv.Itoa(i+1), file)
+				}
+
+				var input string
+				fmt.Scanln(&input)
+
+				chosenNumber, choiceErr := strconv.Atoi(input)
+
+				if choiceErr != nil || chosenNumber > len(files) {
+					fmt.Printf("\"%s\" is not a valid choice!\n", input)
+					os.Exit(1)
+				}
+
+				chosenFile = files[chosenNumber-1]
+			}
+
+			nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger)
 		} else {
-			fmt.Println("Choose an option:")
-			for i, file := range files {
-				fmt.Printf("%s) %s\n", strconv.Itoa(i+1), file)
+			fmt.Println("FOUND:")
+			for _, file := range files {
+				fmt.Printf("\t%s\n", file)
 			}
-
-			var input string
-			fmt.Scanln(&input)
-
-			chosenNumber, choiceErr := strconv.Atoi(input)
-
-			if choiceErr != nil || chosenNumber > len(files) {
-				fmt.Printf("\"%s\" is not a valid choice!\n", input)
-				os.Exit(1)
-			}
-
-			chosenFile = files[chosenNumber-1]
 		}
-
-		nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger)
 	}
 
 	return true
@@ -92,6 +100,7 @@ func (c *Handler) Run() bool {
 func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Context) Handler {
 	findNote := app.Command("find", "Find note.")
 
+	findNoteOpen := findNote.Flag("open", "Open files instead of just printing to stdout").Short('o').Bool()
 	findNoteTags := nflag.HandleTags(findNote)
 	findNoteNamespace := nflag.HandleNamespace(findNote)
 
@@ -99,6 +108,7 @@ func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Conte
 		handler:   findNote,
 		tags:      findNoteTags,
 		namespace: findNoteNamespace,
+		open:      findNoteOpen,
 		config:    config,
 		ctx:       ctx,
 	}

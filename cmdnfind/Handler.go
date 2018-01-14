@@ -85,7 +85,7 @@ func (c *Handler) Run() bool {
 				chosenFile = files[chosenNumber-1]
 			}
 
-			nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger)
+			nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger, config)
 		} else {
 			fmt.Println("FOUND:")
 			for _, file := range files {

@@ -19,11 +19,13 @@ func main() {
 		Logger: nlog.New(nlog.ERROR),
 	}
 
+	devDir := filepath.Join(os.Getenv("HOME"), "dev")
 	appConfig := &nconfig.Config{
-		SearchApp: "ag",
-		Editor:    "nvim",
-		Tagline:   "###-tags-:",
-		NotesPath: filepath.Join(os.Getenv("DOTFILES"), "notes"),
+		SearchApp:    "ag",
+		Editor:       "nvim",
+		EditorConfig: filepath.Join(devDir, "note-app-vim", "vim-note-config.vimrc"),
+		Tagline:      "###-tags-:",
+		NotesPath:    filepath.Join(devDir, "note-app-notes", "notes"),
 	}
 
 	app := parser.New("note", "A command-line note keeping application with tags.")

@@ -1,8 +1,9 @@
 package nconfig
 
 type Config struct {
-	SearchApp string
-	Editor    string
-	Tagline   string
-	NotesPath string
+	SearchApp    string
+	Editor       string
+	EditorConfig string
+	Tagline      string
+	NotesPath    string
 }

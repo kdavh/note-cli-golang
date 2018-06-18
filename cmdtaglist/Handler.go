@@ -2,7 +2,7 @@ package cmdtaglist
 
 import (
 	"fmt"
-	"github.com/kdavh/note-cli-golang/cmdhelp"
+	"github.com/kdavh/note-cli-golang/cmdparse"
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/nctx"
 	parser "gopkg.in/alecthomas/kingpin.v2"
@@ -32,7 +32,7 @@ func (c *Handler) Run() bool {
 	cfg := c.config
 	ctx := c.ctx
 
-	findGlobs, searchDepth := cmdhelp.FileGlobs(*c.namespace, cfg, ctx)
+	findGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, cfg, ctx)
 	tagFindCmd := exec.Command(cfg.SearchApp, append([]string{"--nofilename", cfg.Tagline, "--depth=" + searchDepth}, findGlobs...)...)
 
 	if output, cmdErr := tagFindCmd.Output(); cmdErr != nil {

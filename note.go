@@ -2,6 +2,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/spf13/afero"
+
 	"github.com/kdavh/note-cli-golang/cmdnfind"
 	"github.com/kdavh/note-cli-golang/cmdnnew"
 	"github.com/kdavh/note-cli-golang/cmdtag"
@@ -9,9 +15,6 @@ import (
 	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nlog"
 	parser "gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 func main() {
@@ -26,6 +29,10 @@ func main() {
 		EditorConfig: filepath.Join(devDir, "note-app-vim", "vim-note-config.vimrc"),
 		Tagline:      "###-tags-:",
 		NotesPath:    filepath.Join(devDir, "note-app-notes", "notes"),
+		Fs:           afero.NewOsFs(),
+		OsCtrl: nconfig.OsCtrl{
+			os.Exit,
+		},
 	}
 
 	app := parser.New("note", "A command-line note keeping application with tags.")

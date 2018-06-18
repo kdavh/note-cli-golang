@@ -2,7 +2,7 @@ package cmdnfind
 
 import (
 	"fmt"
-	"github.com/kdavh/note-cli-golang/cmdhelp"
+	"github.com/kdavh/note-cli-golang/cmdparse"
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nflag"
@@ -35,7 +35,7 @@ func (c *Handler) Run() bool {
 
 	ctx.Logger.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
 
-	fileGlobs, searchDepth := cmdhelp.FileGlobs(*c.namespace, config, ctx)
+	fileGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, config, ctx)
 
 	var tagsLookaheads []string
 	for _, tag := range nparse.CommaSplit(*c.tags) {

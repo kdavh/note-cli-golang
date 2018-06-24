@@ -1,19 +1,18 @@
 package cmdparse
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
-	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nparse"
 )
 
 // accept 0 or more namespaces, returning applicable dirs to be searched using search util
-func FileGlobs(namespace string, config *nconfig.Config, ctx *nctx.Context) ([]string, string) {
+func FileGlobs(namespace string, config *nconfig.Config) ([]string, string) {
 	notesPath := config.NotesPath
 	fs := config.Fs
 	os := config.OsCtrl
+	reporter := config.Reporter
 	searchDepth := "0"
 	var findGlobs []string
 
@@ -34,18 +33,18 @@ func FileGlobs(namespace string, config *nconfig.Config, ctx *nctx.Context) ([]s
 			dir := filepath.Join(notesPath, ns)
 			info, err := fs.Stat(dir)
 			if err != nil {
-				fmt.Println(err)
+				reporter.Error(err.Error())
 				os.Exit(1)
 			} else if !info.Mode().IsDir() {
-				ctx.Logger.Errorf("\"%s\" is not a valid namespace (not a directory)\n", ns)
+				reporter.Errorf("\"%s\" is not a valid namespace (not a directory)\n", ns)
 				os.Exit(1)
 			}
 
 			findGlobs = append(findGlobs, dir)
 		}
 	}
-	ctx.Logger.Debugf("SEARCH DIRS: %v\n", findGlobs)
-	ctx.Logger.Debugf("SEARCH DEPTH: %v\n", searchDepth)
+	reporter.Debugf("SEARCH DIRS: %v\n", findGlobs)
+	reporter.Debugf("SEARCH DEPTH: %v\n", searchDepth)
 
 	return findGlobs, searchDepth
 }

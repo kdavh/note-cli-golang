@@ -2,50 +2,52 @@ package cmdparse
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
-	"github.com/kdavh/note-cli-golang/nctx"
-	"github.com/kdavh/note-cli-golang/nlog"
+	"github.com/kdavh/note-cli-golang/nreport"
 	"github.com/spf13/afero"
 )
 
 func TestFileGlobs(t *testing.T) {
 	assert := assert.New(t)
+	fs := afero.NewMemMapFs()
+	reporter := nreport.NewMock()
+	cfg := nconfig.NewCfgMock(fs, reporter)
 
-	c := &nconfig.Config{
-		SearchApp:    "ag",
-		Editor:       "nvim",
-		EditorConfig: filepath.Join("mocks", "editor-config"),
-		Tagline:      "###-tags-:",
-		NotesPath:    "notes",
-		Fs:           afero.NewMemMapFs(),
-		OsCtrl: nconfig.OsCtrl{
-			Exit: func(code int) {},
-		},
-	}
-
-	ctx := &nctx.Context{
-		nlog.New(nlog.ERROR),
-	}
-
-	createMockNotes(c.Fs)
-	globs, searchDepth := FileGlobs("namespace1", c, ctx)
+	createMockNotes(fs)
+	globs, searchDepth := FileGlobs("namespace1", cfg)
 	assert.Equal([]string{"notes/namespace1"}, globs)
 	assert.Equal("0", searchDepth)
+	assert.Equal([]string{}, reporter.ErrorCalls)
+	reporter.Reset()
 
-	globs, searchDepth = FileGlobs("namespace1,ns2", c, ctx)
+	globs, searchDepth = FileGlobs("namespace1,ns2", cfg)
 	assert.Equal([]string{"notes/namespace1", "notes/ns2"}, globs)
 	assert.Equal("0", searchDepth)
+	assert.Equal([]string{}, reporter.ErrorCalls)
+	reporter.Reset()
 
-	globs, searchDepth = FileGlobs("", c, ctx)
+	globs, searchDepth = FileGlobs("", cfg)
 	assert.Equal([]string{"notes"}, globs)
 	assert.Equal("0", searchDepth)
+	assert.Equal([]string{}, reporter.ErrorCalls)
+	reporter.Reset()
 
-	globs, searchDepth = FileGlobs("*", c, ctx)
+	globs, searchDepth = FileGlobs("*", cfg)
+	assert.Equal([]string{"notes"}, globs)
+	assert.Equal("1", searchDepth)
+	assert.Equal([]string{}, reporter.ErrorCalls)
+	reporter.Reset()
+
+	defer func() {
+		r := recover()
+		assert.Equal(1, r, "exited with status 1 because namespace doesn't exist")
+		assert.Equal([]string{"open notes/nsDoesNotExist: file does not exist\n"}, reporter.ErrorCalls)
+	}()
+	globs, searchDepth = FileGlobs("nsDoesNotExist", cfg)
 	assert.Equal([]string{"notes"}, globs)
 	assert.Equal("1", searchDepth)
 }
@@ -53,6 +55,7 @@ func TestFileGlobs(t *testing.T) {
 func createMockNotes(fs afero.Fs) {
 	fs.Mkdir("notes", os.ModeDir)
 	fs.Mkdir("notes/namespace1", os.ModeDir)
+	fs.Mkdir("notes/ns2", os.ModeDir)
 	test_note, _ := fs.Create("notes/namespace1/test_note")
 	defer test_note.Close()
 	test_note.WriteString("###-tags: tag1, tag2\n\n## Super important note")

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,16 +11,11 @@ import (
 	"github.com/kdavh/note-cli-golang/cmdnnew"
 	"github.com/kdavh/note-cli-golang/cmdtag"
 	"github.com/kdavh/note-cli-golang/nconfig"
-	"github.com/kdavh/note-cli-golang/nctx"
-	"github.com/kdavh/note-cli-golang/nlog"
+	"github.com/kdavh/note-cli-golang/nreport"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	appContext := &nctx.Context{
-		Logger: nlog.New(nlog.ERROR),
-	}
-
 	devDir := filepath.Join(os.Getenv("HOME"), "dev")
 	appConfig := &nconfig.Config{
 		SearchApp:    "ag",
@@ -30,26 +24,28 @@ func main() {
 		Tagline:      "###-tags-:",
 		NotesPath:    filepath.Join(devDir, "note-app-notes", "notes"),
 		Fs:           afero.NewOsFs(),
-		OsCtrl: nconfig.OsCtrl{
-			os.Exit,
-		},
+		OsCtrl:       nconfig.NewOsCtrl(),
+		Reporter:     nreport.New(nreport.INFO),
 	}
 
+	// configure the parser flags and subcommands
 	app := parser.New("note", "A command-line note keeping application with tags.")
 	app.HelpFlag.Short('h')
 
 	verbose := app.Flag("verbose", "Enable debug mode.").Short('v').Bool()
 
-	noteNewCmdHandler := cmdnnew.NewHandler(app, appConfig, appContext)
-	noteFindCmdHandler := cmdnfind.NewHandler(app, appConfig, appContext)
-	tagCmdHandler := cmdtag.NewHandler(app, appConfig, appContext)
+	noteNewCmdHandler := cmdnnew.NewHandler(app, appConfig)
+	noteFindCmdHandler := cmdnfind.NewHandler(app, appConfig)
+	tagCmdHandler := cmdtag.NewHandler(app, appConfig)
 
-	// parser fills in values of flags and args here
+	// parser fills in values of flags, commands and returns subcommands here
 	commands := strings.Split(parser.MustParse(app.Parse(os.Args[1:])), " ")
-	fmt.Printf("%v\n\n", commands)
+
+	// starts responding to command
 	if *verbose {
-		appContext.Logger = nlog.New(nlog.DEBUG)
+		appConfig.Reporter = nreport.New(nreport.DEBUG)
 	}
+	appConfig.Reporter.Debugf("%v\n\n", commands)
 
 	if noteNewCmdHandler.CanHandle(commands) {
 		noteNewCmdHandler.Run()

@@ -5,5 +5,5 @@ import (
 )
 
 type Context struct {
-	Logger *nlog.Logger
+	Logger nlog.LoggerInterface
 }

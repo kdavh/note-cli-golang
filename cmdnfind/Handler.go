@@ -2,18 +2,19 @@ package cmdnfind
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+
 	"github.com/kdavh/note-cli-golang/cmdparse"
 	"github.com/kdavh/note-cli-golang/nconfig"
-	"github.com/kdavh/note-cli-golang/nctx"
 	"github.com/kdavh/note-cli-golang/nflag"
 	"github.com/kdavh/note-cli-golang/nparse"
 	parser "gopkg.in/alecthomas/kingpin.v2"
-	"os"
-	"os/exec"
 	//"regexp"
-	"github.com/kdavh/note-cli-golang/nflow"
 	"strconv"
 	"strings"
+
+	"github.com/kdavh/note-cli-golang/nflow"
 )
 
 type Handler struct {
@@ -22,7 +23,6 @@ type Handler struct {
 	namespace *string
 	open      *bool
 	config    *nconfig.Config
-	ctx       *nctx.Context
 }
 
 func (c *Handler) CanHandle(commands []string) bool {
@@ -30,12 +30,11 @@ func (c *Handler) CanHandle(commands []string) bool {
 }
 
 func (c *Handler) Run() bool {
-	ctx := c.ctx
 	config := c.config
 
-	ctx.Logger.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
+	config.Reporter.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
 
-	fileGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, config, ctx)
+	fileGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, config)
 
 	var tagsLookaheads []string
 	for _, tag := range nparse.CommaSplit(*c.tags) {
@@ -48,13 +47,13 @@ func (c *Handler) Run() bool {
 		"--depth=" + searchDepth,
 	}, fileGlobs...)...)
 
-	ctx.Logger.Debugf("SEARCH COMMAND: %s\n", strings.Join(cmd.Args, " "))
+	config.Reporter.Debugf("SEARCH COMMAND: %s\n", strings.Join(cmd.Args, " "))
 
 	if output, cmdErr := cmd.Output(); cmdErr != nil {
 		if cmdErr.Error() == "exit status 1" {
-			ctx.Logger.Error("No relevant files found")
+			config.Reporter.Error("No relevant files found")
 		} else {
-			ctx.Logger.Errorf("COMMAND FAILED: %s", cmdErr)
+			config.Reporter.Errorf("COMMAND FAILED: %s", cmdErr)
 		}
 
 		os.Exit(1)
@@ -85,7 +84,7 @@ func (c *Handler) Run() bool {
 				chosenFile = files[chosenNumber-1]
 			}
 
-			nflow.ShellOpen(config.Editor, chosenFile, ctx.Logger, config)
+			nflow.ShellOpen(config.Editor, chosenFile, config)
 		} else {
 			fmt.Println("FOUND:")
 			for _, file := range files {
@@ -97,7 +96,7 @@ func (c *Handler) Run() bool {
 	return true
 }
 
-func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Context) Handler {
+func NewHandler(app *parser.Application, config *nconfig.Config) Handler {
 	findNote := app.Command("find", "Find note.")
 
 	findNoteOpen := findNote.Flag("open", "Open files instead of just printing to stdout").Short('o').Bool()
@@ -110,6 +109,5 @@ func NewHandler(app *parser.Application, config *nconfig.Config, ctx *nctx.Conte
 		namespace: findNoteNamespace,
 		open:      findNoteOpen,
 		config:    config,
-		ctx:       ctx,
 	}
 }

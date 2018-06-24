@@ -2,22 +2,21 @@ package cmdtaglist
 
 import (
 	"fmt"
-	"github.com/kdavh/note-cli-golang/cmdparse"
-	"github.com/kdavh/note-cli-golang/nconfig"
-	"github.com/kdavh/note-cli-golang/nctx"
-	parser "gopkg.in/alecthomas/kingpin.v2"
 	"os"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/kdavh/note-cli-golang/cmdparse"
+	"github.com/kdavh/note-cli-golang/nconfig"
+	parser "gopkg.in/alecthomas/kingpin.v2"
 )
 
 type Handler struct {
 	handler   *parser.CmdClause
 	namespace *string
 	config    *nconfig.Config
-	ctx       *nctx.Context
 }
 
 func (c *Handler) CanHandle(commands []string) bool {
@@ -30,13 +29,12 @@ func (c *Handler) CanHandle(commands []string) bool {
 
 func (c *Handler) Run() bool {
 	cfg := c.config
-	ctx := c.ctx
 
-	findGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, cfg, ctx)
+	findGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, cfg)
 	tagFindCmd := exec.Command(cfg.SearchApp, append([]string{"--nofilename", cfg.Tagline, "--depth=" + searchDepth}, findGlobs...)...)
 
 	if output, cmdErr := tagFindCmd.Output(); cmdErr != nil {
-		ctx.Logger.Errorf("COMMAND FAILED: %s\n\nERROR: %s", tagFindCmd, cmdErr)
+		cfg.Reporter.Errorf("COMMAND FAILED: %s\n\nERROR: %s", tagFindCmd, cmdErr)
 
 		os.Exit(1)
 	} else {
@@ -70,13 +68,12 @@ func (c *Handler) Run() bool {
 	return true
 }
 
-func NewHandler(app *parser.CmdClause, namespace *string, config *nconfig.Config, ctx *nctx.Context) *Handler {
+func NewHandler(app *parser.CmdClause, namespace *string, config *nconfig.Config) *Handler {
 	listHandler := app.Command("ls", "Tag list.")
 
 	return &Handler{
 		handler:   listHandler,
 		namespace: namespace,
 		config:    config,
-		ctx:       ctx,
 	}
 }

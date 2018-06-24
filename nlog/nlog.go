@@ -8,6 +8,12 @@ type Logger struct {
 	level uint
 }
 
+type LoggerInterface interface {
+	Debugf(string, ...interface{}) bool
+	Errorf(string, ...interface{}) bool
+	Error(string) bool
+}
+
 func (l *Logger) Debugf(str string, args ...interface{}) bool {
 	if l.level >= DEBUG {
 		fmt.Printf(str, args...)

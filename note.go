@@ -18,14 +18,13 @@ import (
 func main() {
 	devDir := filepath.Join(os.Getenv("HOME"), "dev")
 	appConfig := &nconfig.Config{
-		SearchApp:    "ag",
-		Editor:       "nvim",
-		EditorConfig: filepath.Join(devDir, "note-app-vim", "vim-note-config.vimrc"),
-		Tagline:      "###-tags-:",
-		NotesPath:    filepath.Join(devDir, "note-app-notes", "notes"),
-		Fs:           afero.NewOsFs(),
-		OsCtrl:       nconfig.NewOsCtrl(),
-		Reporter:     nreport.New(nreport.INFO),
+		SearchApp: "ag",
+		Editor:    nconfig.NewEditorVim(devDir),
+		Tagline:   "###-tags-:",
+		NotesPath: filepath.Join(devDir, "note-app-notes", "notes"),
+		Fs:        afero.NewOsFs(),
+		OsCtrl:    nconfig.NewOsCtrl(),
+		Reporter:  nreport.New(nreport.ERROR),
 	}
 
 	// configure the parser flags and subcommands

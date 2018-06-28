@@ -11,20 +11,54 @@ import (
 	parser "gopkg.in/alecthomas/kingpin.v2"
 )
 
-func TestNewHandlerRun(t *testing.T) {
-	assert := assert.New(t)
+type testHelper struct {
+	Fs       afero.Fs
+	Reporter *nreport.ReporterMock
+	App      *parser.Application
+	Handler  *Handler
+}
+
+func setupTest() testHelper {
 	fs := afero.NewMemMapFs()
 	reporter := nreport.NewMock()
-	cfg := nconfig.NewCfgMock(fs, reporter)
-
+	editor := nconfig.NewEditorMock(fs)
+	cfg := nconfig.NewCfgMock(fs, reporter, editor)
 	app := parser.New("note", "test app")
 
-	handler := NewHandler(app, cfg)
+	return testHelper{
+		Fs:       fs,
+		Reporter: reporter,
+		App:      app,
+		Handler:  NewHandler(app, cfg),
+	}
+}
 
-	strings.Split(parser.MustParse(app.Parse(strings.Split("new test-file.md -tt1,t2", " "))), " ")
-	handler.Run()
+func TestNew(t *testing.T) {
+	h := setupTest()
+	strings.Split(parser.MustParse(h.App.Parse(strings.Split("new test-file.md -tt1,t2", " "))), " ")
+	h.Handler.Run()
 
-	stat, err := fs.Stat("notes/test-file.md")
-	assert.NotEmpty(stat)
-	assert.Nil(err)
+	stat, err := h.Fs.Stat("notes/test-file.md")
+	assert.NotEmpty(t, stat)
+	assert.Nil(t, err)
+}
+
+func TestNewFail(t *testing.T) {
+	h := setupTest()
+	strings.Split(parser.MustParse(h.App.Parse(strings.Split("new bad-test-file -tt1,t2", " "))), " ")
+
+	defer func() {
+		r := recover()
+		assert.Equal(t, 1, r, "exited with status 1 because filename not correct")
+		assert.Equal(t,
+			[]string{"bad-test-file must end with `.md`, exiting\n"},
+			h.Reporter.ErrorCalls,
+		)
+
+		stat, err := h.Fs.Stat("notes/bad-test-file")
+		assert.Empty(t, stat)
+		assert.NotNil(t, err)
+
+	}()
+	h.Handler.Run()
 }

@@ -51,7 +51,7 @@ func (c *Handler) Run() bool {
 		fmt.Fprintf(file, data)
 		file.Close()
 
-		nflow.ShellOpen(cfg.Editor, filename, cfg)
+		nflow.ShellOpen(filename, cfg)
 	}
 
 	return true

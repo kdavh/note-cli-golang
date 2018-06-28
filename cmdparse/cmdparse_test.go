@@ -15,7 +15,8 @@ func TestFileGlobs(t *testing.T) {
 	assert := assert.New(t)
 	fs := afero.NewMemMapFs()
 	reporter := nreport.NewMock()
-	cfg := nconfig.NewCfgMock(fs, reporter)
+	editor := nconfig.NewEditorMock(fs)
+	cfg := nconfig.NewCfgMock(fs, reporter, editor)
 
 	createMockNotes(fs)
 	globs, searchDepth := FileGlobs("namespace1", cfg)
@@ -48,8 +49,6 @@ func TestFileGlobs(t *testing.T) {
 		assert.Equal([]string{"open notes/nsDoesNotExist: file does not exist\n"}, reporter.ErrorCalls)
 	}()
 	globs, searchDepth = FileGlobs("nsDoesNotExist", cfg)
-	assert.Equal([]string{"notes"}, globs)
-	assert.Equal("1", searchDepth)
 }
 
 func createMockNotes(fs afero.Fs) {

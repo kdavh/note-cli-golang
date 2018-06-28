@@ -2,7 +2,6 @@ package nconfig
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/afero"
 )
@@ -18,15 +17,28 @@ func NewOsCtrlMock() OsCtrl {
 	}
 }
 
-func NewCfgMock(fs afero.Fs, reporter ReporterInterface) *Config {
+func NewCfgMock(fs afero.Fs, reporter ReporterInterface, editor EditorInterface) *Config {
 	return &Config{
-		SearchApp:    "ag",
-		Editor:       "nvim",
-		EditorConfig: filepath.Join("mocks", "editor-config"),
-		Tagline:      "###-tags-:",
-		NotesPath:    "notes",
-		Fs:           fs,
-		OsCtrl:       NewOsCtrlMock(),
-		Reporter:     reporter,
+		SearchApp: "ag",
+		Editor:    editor,
+		Tagline:   "###-tags-:",
+		NotesPath: "notes",
+		Fs:        fs,
+		OsCtrl:    NewOsCtrlMock(),
+		Reporter:  reporter,
+	}
+}
+
+type editorMock struct {
+	fs afero.Fs
+}
+
+func (e *editorMock) Open(file string, cfg *Config) error {
+	return nil
+}
+
+func NewEditorMock(fs afero.Fs) *editorMock {
+	return &editorMock{
+		fs: fs,
 	}
 }

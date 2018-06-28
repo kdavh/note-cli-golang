@@ -1,31 +1,17 @@
 package nflow
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
 )
 
-func ShellOpen(editor string, file string, cfg *nconfig.Config) bool {
-	cmd := exec.Command(editor, []string{
-		"-S",
-		cfg.EditorConfig,
-		file,
-	}...)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("TAGLINE=%s", cfg.Tagline))
-	cmd.Dir = cfg.NotesPath
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-
-	cfg.Reporter.Debugf("EDITOR COMMAND: %s %s", editor, file)
-
-	if editErr := cmd.Run(); editErr != nil {
+func ShellOpen(file string, cfg *nconfig.Config) bool {
+	if editErr := cfg.Editor.Open(file, cfg); editErr != nil {
 		cfg.Reporter.Error("...Error editing...")
-		os.Exit(1)
+		cfg.OsCtrl.Exit(1)
 	} else {
-		os.Exit(0)
+		cfg.OsCtrl.Exit(0)
 	}
 
 	return true

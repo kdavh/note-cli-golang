@@ -3,16 +3,13 @@ package cmdnfind
 import (
 	"fmt"
 	"os"
-	"os/exec"
 
-	"github.com/kdavh/note-cli-golang/cmdparse"
+	"strconv"
+
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/nflag"
 	"github.com/kdavh/note-cli-golang/nparse"
 	parser "gopkg.in/alecthomas/kingpin.v2"
-	//"regexp"
-	"strconv"
-	"strings"
 
 	"github.com/kdavh/note-cli-golang/nflow"
 )
@@ -34,32 +31,16 @@ func (c *Handler) Run() bool {
 
 	config.Reporter.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
 
-	fileGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, config)
-
-	var tagsLookaheads []string
-	for _, tag := range nparse.CommaSplit(*c.tags) {
-		tagsLookaheads = append(tagsLookaheads, fmt.Sprintf("(?=.*\\s+%s(\\s+|\\$))", tag))
-	}
-
-	cmd := exec.Command(config.SearchApp, append([]string{
-		config.Tagline + strings.Join(tagsLookaheads, "|"),
-		"--files-with-matches",
-		"--depth=" + searchDepth,
-	}, fileGlobs...)...)
-
-	config.Reporter.Debugf("SEARCH COMMAND: %s\n", strings.Join(cmd.Args, " "))
-
-	if output, cmdErr := cmd.Output(); cmdErr != nil {
+	files, cmdErr := config.Searcher.Notes(*c.namespace, *c.tags, "", config)
+	if cmdErr != nil {
 		if cmdErr.Error() == "exit status 1" {
 			config.Reporter.Error("No relevant files found")
 		} else {
 			config.Reporter.Errorf("COMMAND FAILED: %s", cmdErr)
 		}
 
-		os.Exit(1)
+		config.OsCtrl.Exit(1)
 	} else {
-		files := strings.Split(strings.TrimSpace(string(output)), "\n")
-
 		if *c.open {
 			var chosenFile string
 
@@ -96,14 +77,14 @@ func (c *Handler) Run() bool {
 	return true
 }
 
-func NewHandler(app *parser.Application, config *nconfig.Config) Handler {
+func NewHandler(app *parser.Application, config *nconfig.Config) *Handler {
 	findNote := app.Command("find", "Find note.")
 
 	findNoteOpen := findNote.Flag("open", "Open files instead of just printing to stdout").Short('o').Bool()
 	findNoteTags := nflag.HandleTags(findNote)
 	findNoteNamespace := nflag.HandleNamespace(findNote)
 
-	return Handler{
+	return &Handler{
 		handler:   findNote,
 		tags:      findNoteTags,
 		namespace: findNoteNamespace,

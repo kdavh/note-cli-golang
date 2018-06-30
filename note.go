@@ -11,6 +11,7 @@ import (
 	"github.com/kdavh/note-cli-golang/cmdnnew"
 	"github.com/kdavh/note-cli-golang/cmdtag"
 	"github.com/kdavh/note-cli-golang/nconfig"
+	"github.com/kdavh/note-cli-golang/neditor"
 	"github.com/kdavh/note-cli-golang/nreport"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 )
@@ -19,7 +20,7 @@ func main() {
 	devDir := filepath.Join(os.Getenv("HOME"), "dev")
 	appConfig := &nconfig.Config{
 		SearchApp: "ag",
-		Editor:    nconfig.NewEditorVim(devDir),
+		Editor:    neditor.NewEditorVim(devDir),
 		Tagline:   "###-tags-:",
 		NotesPath: filepath.Join(devDir, "note-app-notes", "notes"),
 		Fs:        afero.NewOsFs(),

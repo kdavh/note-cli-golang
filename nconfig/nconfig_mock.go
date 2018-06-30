@@ -19,7 +19,7 @@ func NewOsCtrlMock() OsCtrl {
 
 func NewCfgMock(fs afero.Fs, reporter ReporterInterface, editor EditorInterface) *Config {
 	return &Config{
-		SearchApp: "ag",
+		Searcher:  NewSearcherMock(),
 		Editor:    editor,
 		Tagline:   "###-tags-:",
 		NotesPath: "notes",
@@ -41,4 +41,14 @@ func NewEditorMock(fs afero.Fs) *editorMock {
 	return &editorMock{
 		fs: fs,
 	}
+}
+
+type searcherMock struct{}
+
+func (s *searcherMock) Notes(namespace string, tagsQuery string, textQuery string, cfg *Config) ([]string, error) {
+	return []string{}, nil
+}
+
+func NewSearcherMock() *searcherMock {
+	return &searcherMock{}
 }

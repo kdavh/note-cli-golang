@@ -1,10 +1,13 @@
 package cmdnnew
 
 import (
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
+	"github.com/kdavh/note-cli-golang/neditor"
 	"github.com/kdavh/note-cli-golang/nreport"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -19,17 +22,18 @@ type testHelper struct {
 }
 
 func setupTest() testHelper {
-	fs := afero.NewMemMapFs()
-	reporter := nreport.NewMock()
-	editor := nconfig.NewEditorMock(fs)
-	cfg := nconfig.NewCfgMock(fs, reporter, editor)
+	exec.Command("rm", "-r", nconfig.NotesDirMockPath()).Run()
+	fs := afero.NewOsFs()
+	rp := nreport.NewMock()
+	ed := neditor.NewEditorMock(fs)
+	osCtrl := nconfig.NewOsCtrlMock()
 	app := parser.New("note", "test app")
 
 	return testHelper{
 		Fs:       fs,
-		Reporter: reporter,
+		Reporter: rp,
 		App:      app,
-		Handler:  NewHandler(app, cfg),
+		Handler:  NewHandler(app, rp, ed, osCtrl),
 	}
 }
 
@@ -38,7 +42,7 @@ func TestNew(t *testing.T) {
 	strings.Split(parser.MustParse(h.App.Parse(strings.Split("new test-file.md -tt1,t2", " "))), " ")
 	h.Handler.Run()
 
-	stat, err := h.Fs.Stat("notes/test-file.md")
+	stat, err := h.Fs.Stat(filepath.Join(nconfig.NotesDirMockPath(), "test-file.md"))
 	assert.NotEmpty(t, stat)
 	assert.Nil(t, err)
 }
@@ -55,7 +59,7 @@ func TestNewFail(t *testing.T) {
 			h.Reporter.ErrorCalls,
 		)
 
-		stat, err := h.Fs.Stat("notes/bad-test-file")
+		stat, err := h.Fs.Stat(filepath.Join(nconfig.NotesDirMockPath(), "bad-test-file"))
 		assert.Empty(t, stat)
 		assert.NotNil(t, err)
 

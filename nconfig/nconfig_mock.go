@@ -1,25 +1,22 @@
 package nconfig
 
 import (
-	"os"
-
 	"github.com/spf13/afero"
 )
 
-func NewOsCtrlMock() OsCtrl {
-	return OsCtrl{
+func NewOsCtrlMock() *OsCtrl {
+	return &OsCtrl{
 		Exit: func(code int) {
 			if code >= 1 {
 				panic(code)
 			}
 		},
-		IsExist: os.IsExist,
 	}
 }
 
-func NewCfgMock(fs afero.Fs, reporter ReporterInterface, editor EditorInterface) *Config {
+func NewCfgMock(fs afero.Fs, reporter ReporterInterface, editor EditorInterface, searcher SearcherInterface) *Config {
 	return &Config{
-		Searcher:  NewSearcherMock(),
+		Searcher:  searcher,
 		Editor:    editor,
 		Tagline:   "###-tags-:",
 		NotesPath: "notes",
@@ -34,6 +31,10 @@ type editorMock struct {
 }
 
 func (e *editorMock) Open(file string, cfg *Config) error {
+	return nil
+}
+
+func (e *editorMock) NewFile(ns string, fname string, tags []string) error {
 	return nil
 }
 

@@ -2,17 +2,32 @@ package nconfig
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/afero"
 )
 
+var devDir string = filepath.Join(os.Getenv("HOME"), "dev")
+
+func DefaultTaglineFormat() string {
+	return "###-tags-:"
+}
+func NotesDirPath() string {
+	return filepath.Join(devDir, "note-app-notes", "notes")
+}
+func NotesDirMockPath() string {
+	return "/tmp/note-cli-golang-test"
+}
+func EditorConfigPath() string {
+	return filepath.Join(devDir, "note-app-vim", "vim-note-config.vimrc")
+}
+
 type OsCtrl struct {
-	Exit    func(int)
-	IsExist func(err error) bool
+	Exit func(int)
 }
 
 type SearcherInterface interface {
-	Notes(string, string, string, *Config) ([]string, error)
+	Notes(string, []string, string, ReporterInterface) ([]string, error)
 }
 
 type ReporterInterface interface {
@@ -20,16 +35,18 @@ type ReporterInterface interface {
 	Infof(string, ...interface{})
 	Errorf(string, ...interface{})
 	Error(string)
+	Reportf(string, ...interface{})
+	Prompt() string
 }
 
 type EditorInterface interface {
-	Open(file string, cfg *Config) error
+	Open(file string, rp ReporterInterface) error
+	NewFile(namespace string, filename string, tags []string) error
 }
 
-func NewOsCtrl() OsCtrl {
-	return OsCtrl{
-		Exit:    os.Exit,
-		IsExist: os.IsExist,
+func NewOsCtrl() *OsCtrl {
+	return &OsCtrl{
+		Exit: os.Exit,
 	}
 }
 
@@ -38,7 +55,7 @@ type Config struct {
 	Tagline   string
 	NotesPath string
 	Fs        afero.Fs
-	OsCtrl    OsCtrl
+	OsCtrl    *OsCtrl
 	Reporter  ReporterInterface
 	Editor    EditorInterface
 }

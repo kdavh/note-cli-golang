@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/afero"
@@ -17,16 +16,10 @@ import (
 )
 
 func main() {
-	devDir := filepath.Join(os.Getenv("HOME"), "dev")
-	appConfig := &nconfig.Config{
-		SearchApp: "ag",
-		Editor:    neditor.NewEditorVim(devDir),
-		Tagline:   "###-tags-:",
-		NotesPath: filepath.Join(devDir, "note-app-notes", "notes"),
-		Fs:        afero.NewOsFs(),
-		OsCtrl:    nconfig.NewOsCtrl(),
-		Reporter:  nreport.New(nreport.ERROR),
-	}
+	ed := neditor.NewEditorVim()
+	fs := afero.NewOsFs()
+	osCtrl := nconfig.NewOsCtrl()
+	rp := nreport.New(nreport.ERROR)
 
 	// configure the parser flags and subcommands
 	app := parser.New("note", "A command-line note keeping application with tags.")
@@ -34,7 +27,7 @@ func main() {
 
 	verbose := app.Flag("verbose", "Enable debug mode.").Short('v').Bool()
 
-	noteNewCmdHandler := cmdnnew.NewHandler(app, appConfig)
+	noteNewCmdHandler := cmdnnew.NewHandler(app, rp, ed, osCtrl)
 	noteFindCmdHandler := cmdnfind.NewHandler(app, appConfig)
 	tagCmdHandler := cmdtag.NewHandler(app, appConfig)
 

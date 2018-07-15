@@ -1,75 +1,78 @@
 package cmdnfind
 
 import (
-	"fmt"
-	"os"
-
 	"strconv"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
+	"github.com/kdavh/note-cli-golang/neditor"
 	"github.com/kdavh/note-cli-golang/nflag"
-	"github.com/kdavh/note-cli-golang/nparse"
 	parser "gopkg.in/alecthomas/kingpin.v2"
-
-	"github.com/kdavh/note-cli-golang/nflow"
 )
+
+const NO_NOTES_FOUND = "No relevant files found"
 
 type Handler struct {
 	handler   *parser.CmdClause
-	tags      *string
+	tags      *[]string
 	namespace *string
 	open      *bool
-	config    *nconfig.Config
+	se        nconfig.SearcherInterface
+	ed        *neditor.Editor
+	osCtrl    *nconfig.OsCtrl
+	rp        nconfig.ReporterInterface
 }
 
-func (c *Handler) CanHandle(commands []string) bool {
-	return len(commands) > 0 && c.handler.FullCommand() == commands[0]
+func (hndl *Handler) CanHandle(commands []string) bool {
+	return len(commands) > 0 && hndl.handler.FullCommand() == commands[0]
 }
 
-func (c *Handler) Run() bool {
-	config := c.config
+func (hndl *Handler) Run() bool {
+	rp := hndl.rp
 
-	config.Reporter.Debugf("SEARCH TAGS %v\n", nparse.CommaSplit(*c.tags))
+	rp.Debugf("SEARCH TAGS %v\n", *hndl.tags)
 
-	files, cmdErr := config.Searcher.Notes(*c.namespace, *c.tags, "", config)
+	files, cmdErr := hndl.se.Notes(*hndl.namespace, *hndl.tags, "", rp)
 	if cmdErr != nil {
 		if cmdErr.Error() == "exit status 1" {
-			config.Reporter.Error("No relevant files found")
+			rp.Errorf(NO_NOTES_FOUND + "\n")
 		} else {
-			config.Reporter.Errorf("COMMAND FAILED: %s", cmdErr)
+			rp.Errorf("COMMAND FAILED: %s", cmdErr)
 		}
 
-		config.OsCtrl.Exit(1)
+		hndl.osCtrl.Exit(1)
 	} else {
-		if *c.open {
+		if *hndl.open {
 			var chosenFile string
 
 			if len(files) == 1 {
 				chosenFile = files[0]
 			} else {
-				fmt.Println("Choose an option:")
+				rp.Reportf("Choose an option:")
 				for i, file := range files {
-					fmt.Printf("%s) %s\n", strconv.Itoa(i+1), file)
+					rp.Reportf("%s) %s\n", strconv.Itoa(i+1), file)
 				}
 
-				var input string
-				fmt.Scanln(&input)
+				input := rp.Prompt()
 
 				chosenNumber, choiceErr := strconv.Atoi(input)
 
 				if choiceErr != nil || chosenNumber > len(files) {
-					fmt.Printf("\"%s\" is not a valid choice!\n", input)
-					os.Exit(1)
+					rp.Errorf("\"%s\" is not a valid choice!\n", input)
+					hndl.osCtrl.Exit(1)
 				}
 
 				chosenFile = files[chosenNumber-1]
 			}
 
-			nflow.ShellOpen(chosenFile, config)
+			if err := hndl.ed.Open(*hndl.namespace, chosenFile); err != nil {
+				hndl.osCtrl.Exit(1)
+			} else {
+				hndl.osCtrl.Exit(0)
+			}
 		} else {
-			fmt.Println("FOUND:")
+			rp.Reportf("FOUND:\n")
 			for _, file := range files {
-				fmt.Printf("\t%s\n", file)
+				rp.Reportf("\t%s\n", file)
 			}
 		}
 	}
@@ -77,7 +80,7 @@ func (c *Handler) Run() bool {
 	return true
 }
 
-func NewHandler(app *parser.Application, config *nconfig.Config) *Handler {
+func NewHandler(app *parser.Application, se nconfig.SearcherInterface, ed *neditor.Editor, osCtrl *nconfig.OsCtrl, rp nconfig.ReporterInterface) *Handler {
 	findNote := app.Command("find", "Find note.")
 
 	findNoteOpen := findNote.Flag("open", "Open files instead of just printing to stdout").Short('o').Bool()
@@ -89,6 +92,9 @@ func NewHandler(app *parser.Application, config *nconfig.Config) *Handler {
 		tags:      findNoteTags,
 		namespace: findNoteNamespace,
 		open:      findNoteOpen,
-		config:    config,
+		ed:        ed,
+		se:        se,
+		osCtrl:    osCtrl,
+		rp:        rp,
 	}
 }

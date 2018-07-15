@@ -6,20 +6,20 @@ import (
 	"github.com/kdavh/note-cli-golang/nconfig"
 )
 
-func ShellOpen(file string, cfg *nconfig.Config) bool {
-	if editErr := cfg.Editor.Open(file, cfg); editErr != nil {
-		cfg.Reporter.Error("...Error editing...")
-		cfg.OsCtrl.Exit(1)
-	} else {
-		cfg.OsCtrl.Exit(0)
-	}
+func ShellOpen(file string, ed nconfig.EditorInterface, rp nconfig.ReporterInterface, osCtrl *nconfig.OsCtrl) bool {
+	// if editErr := ed.Open(file, cfg); editErr != nil {
+	// 	rp.Error("...Error editing...")
+	// 	osCtrl.Exit(1)
+	// } else {
+	// 	osCtrl.Exit(0)
+	// }
 
 	return true
 }
 
-func ErrExit(e error, reporter nconfig.ReporterInterface) bool {
+func ErrExit(e error, r nconfig.ReporterInterface) bool {
 	if e != nil {
-		reporter.Debugf("ERROR, EXITING: %v", e)
+		r.Debugf("ERROR, EXITING: %v", e)
 		os.Exit(1)
 	}
 	return true

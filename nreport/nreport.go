@@ -32,6 +32,16 @@ func (l *Reporter) Error(str string) {
 	}
 }
 
+func (l *Reporter) Reportf(str string, args ...interface{}) {
+	fmt.Printf(str, args...)
+}
+
+func (l *Reporter)Prompt() string {
+	var input string
+	fmt.Scanln(&input)
+	return input
+}
+
 func New(level uint) *Reporter {
 	return &Reporter{
 		level: level,

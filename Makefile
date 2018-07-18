@@ -1,8 +1,10 @@
+PHONY: i
 # for local development, just run this and then reference new file in bin
 # builds and install binary to $GOPATH/bin/note-cli-golang
 # use `go build` to instead output binary to cwd
 install:
 	go install
+i: install
 
 # if updates happened elsewhere, this gets those updates
 # while keeping other things, like custom local git remotes, working changes

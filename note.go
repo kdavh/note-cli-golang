@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/kdavh/note-cli-golang/cmdnamespace"
 	"github.com/kdavh/note-cli-golang/cmdnfind"
 	"github.com/kdavh/note-cli-golang/cmdnnew"
 	"github.com/kdavh/note-cli-golang/cmdtag"
@@ -31,6 +32,7 @@ func main() {
 	noteNewCmdHandler := cmdnnew.NewHandler(app, rp, ed, osCtrl)
 	noteFindCmdHandler := cmdnfind.NewHandler(app, se, ed, osCtrl, rp)
 	tagCmdHandler := cmdtag.NewHandler(app, se, osCtrl, rp)
+	namespaceCmdHandler := cmdnamespace.NewHandler(app, se, osCtrl, rp)
 
 	// parser fills in values of flags, commands and returns subcommands here
 	commands := parser.MustParse(app.Parse(os.Args[1:]))
@@ -47,5 +49,7 @@ func main() {
 		noteFindCmdHandler.Run()
 	} else if tagCmdHandler.CanHandle(commands) {
 		tagCmdHandler.Run(commands)
+	} else if namespaceCmdHandler.CanHandle(commands) {
+		namespaceCmdHandler.Run(commands)
 	}
 }

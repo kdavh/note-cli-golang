@@ -99,6 +99,17 @@ func (se *searcher) Tags(namespace string, filter string, rp nconfig.ReporterInt
 	}
 }
 
+func (se *searcher) Namespaces() ([]string, error) {
+	// TODO: don't rely on bash, use filepath.Glob etc...
+	lsCmd := exec.Command("bash", "-c", "ls -d */")
+	lsCmd.Dir = se.notesDirPath
+	output, _ := lsCmd.Output()
+	list := regexp.MustCompile(`\n+`).Split(
+		strings.TrimSpace(string(output)), -1,
+	)
+	return append([]string{"/"}, list...), nil
+}
+
 func NewSearcherAg(fs afero.Fs) *searcher {
 	return &searcher{
 		prog:         "ag",

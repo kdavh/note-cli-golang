@@ -29,6 +29,7 @@ type OsCtrl struct {
 type SearcherInterface interface {
 	Notes(string, []string, string, ReporterInterface) ([]string, error)
 	Tags(string, string, ReporterInterface) ([]string, error)
+	Namespaces() ([]string, error)
 }
 
 type ReporterInterface interface {

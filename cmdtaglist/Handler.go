@@ -1,14 +1,8 @@
 package cmdtaglist
 
 import (
-	"fmt"
-	"os"
-	"os/exec"
-	"regexp"
-	"sort"
 	"strings"
 
-	"github.com/kdavh/note-cli-golang/cmdparse"
 	"github.com/kdavh/note-cli-golang/nconfig"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 )
@@ -16,64 +10,44 @@ import (
 type Handler struct {
 	handler   *parser.CmdClause
 	namespace *string
-	config    *nconfig.Config
+	filter    *string
+	se        nconfig.SearcherInterface
+	rp        nconfig.ReporterInterface
+	osCtrl    *nconfig.OsCtrl
 }
 
-func (c *Handler) CanHandle(commands []string) bool {
-	handlerCmds := strings.Split(c.handler.FullCommand(), " ")
-
-	return len(commands) >= len(handlerCmds) &&
-		handlerCmds[0] == commands[0] &&
-		handlerCmds[1] == commands[1]
+func (hndl *Handler) CanHandle(commands string) bool {
+	return strings.HasPrefix(commands, hndl.handler.FullCommand())
 }
 
-func (c *Handler) Run() bool {
-	cfg := c.config
+func (hndl *Handler) Run() bool {
+	allTags, err := hndl.se.Tags(*hndl.namespace, *hndl.filter, hndl.rp)
+	if err != nil {
+		hndl.osCtrl.Exit(1)
+	}
 
-	findGlobs, searchDepth := cmdparse.FileGlobs(*c.namespace, cfg)
-	tagFindCmd := exec.Command(cfg.SearchApp, append([]string{"--nofilename", cfg.Tagline, "--depth=" + searchDepth}, findGlobs...)...)
-
-	if output, cmdErr := tagFindCmd.Output(); cmdErr != nil {
-		cfg.Reporter.Errorf("COMMAND FAILED: %s\n\nERROR: %s", tagFindCmd, cmdErr)
-
-		os.Exit(1)
-	} else {
-		allTagsMap := make(map[string]bool)
-		var allTags []string
-		lines := regexp.MustCompile(`\n+`).Split(
-			strings.TrimSpace(string(output)), -1,
-		)
-
-		for _, line := range lines {
-			tags := regexp.MustCompile(`\s+`).Split(
-				strings.TrimSpace(strings.Replace(line, cfg.Tagline, "", 1)), -1,
-			)
-
-			for _, tag := range tags {
-				allTagsMap[tag] = true
-			}
-		}
-
-		for tag, _ := range allTagsMap {
-			allTags = append(allTags, tag)
-		}
-
-		fmt.Println("\nTAGS LIST")
-		sort.Strings(allTags)
-		for _, tag := range allTags {
-			fmt.Println(tag)
-		}
+	hndl.rp.Reportf("\nTAGS LIST\n")
+	for _, tag := range allTags {
+		hndl.rp.Reportf(tag + "\n")
 	}
 
 	return true
 }
 
-func NewHandler(app *parser.CmdClause, namespace *string, config *nconfig.Config) *Handler {
+func NewHandler(app *parser.CmdClause, namespace *string, se nconfig.SearcherInterface, osCtrl *nconfig.OsCtrl, rp nconfig.ReporterInterface) *Handler {
 	listHandler := app.Command("ls", "Tag list.")
+
+	tagListFilter := listHandler.Flag(
+		"filter",
+		"optional name filter",
+	).Short('f').String()
 
 	return &Handler{
 		handler:   listHandler,
 		namespace: namespace,
-		config:    config,
+		filter:    tagListFilter,
+		se:        se,
+		rp:        rp,
+		osCtrl:    osCtrl,
 	}
 }

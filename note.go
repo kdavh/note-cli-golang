@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"strings"
 
 	"github.com/spf13/afero"
 
@@ -12,14 +11,16 @@ import (
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/neditor"
 	"github.com/kdavh/note-cli-golang/nreport"
+	"github.com/kdavh/note-cli-golang/nsearch"
 	parser "gopkg.in/alecthomas/kingpin.v2"
 )
 
 func main() {
-	ed := neditor.NewEditorVim()
 	fs := afero.NewOsFs()
+	ed := neditor.NewEditorVim(fs)
 	osCtrl := nconfig.NewOsCtrl()
 	rp := nreport.New(nreport.ERROR)
+	se := nsearch.NewSearcherAg(fs)
 
 	// configure the parser flags and subcommands
 	app := parser.New("note", "A command-line note keeping application with tags.")
@@ -28,17 +29,17 @@ func main() {
 	verbose := app.Flag("verbose", "Enable debug mode.").Short('v').Bool()
 
 	noteNewCmdHandler := cmdnnew.NewHandler(app, rp, ed, osCtrl)
-	noteFindCmdHandler := cmdnfind.NewHandler(app, appConfig)
-	tagCmdHandler := cmdtag.NewHandler(app, appConfig)
+	noteFindCmdHandler := cmdnfind.NewHandler(app, se, ed, osCtrl, rp)
+	tagCmdHandler := cmdtag.NewHandler(app, se, osCtrl, rp)
 
 	// parser fills in values of flags, commands and returns subcommands here
-	commands := strings.Split(parser.MustParse(app.Parse(os.Args[1:])), " ")
+	commands := parser.MustParse(app.Parse(os.Args[1:]))
 
 	// starts responding to command
 	if *verbose {
-		appConfig.Reporter = nreport.New(nreport.DEBUG)
+		rp.Level = nreport.DEBUG
 	}
-	appConfig.Reporter.Debugf("%v\n\n", commands)
+	rp.Debugf("%v\n\n", commands)
 
 	if noteNewCmdHandler.CanHandle(commands) {
 		noteNewCmdHandler.Run()

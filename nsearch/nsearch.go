@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
@@ -12,12 +14,14 @@ import (
 	"github.com/spf13/afero"
 )
 
+const ALL_NAMESPACES_PLACEHOLDER = "_"
+const NO_RESULTS_MSG = "No results"
+
 type searcher struct {
-	prog          string
-	tagLine       string
-	notesDirPath  string
-	tagLineFormat string
-	fs            afero.Fs
+	prog         string
+	tagLine      string
+	notesDirPath string
+	fs           afero.Fs
 }
 
 func (se *searcher) Notes(namespace string, tagsQuery []string, textQuery string, rp nconfig.ReporterInterface) ([]string, error) {
@@ -36,7 +40,7 @@ func (se *searcher) Notes(namespace string, tagsQuery []string, textQuery string
 	}
 
 	cmd := exec.Command(se.prog, append([]string{
-		se.tagLineFormat + strings.Join(tagsLookaheads, "|"),
+		se.tagLine + strings.Join(tagsLookaheads, "|"),
 		"--files-with-matches",
 		"--depth=" + searchDepth,
 	}, fileGlobs...)...)
@@ -50,21 +54,66 @@ func (se *searcher) Notes(namespace string, tagsQuery []string, textQuery string
 	}
 }
 
+func (se *searcher) Tags(namespace string, filter string, rp nconfig.ReporterInterface) ([]string, error) {
+	findGlobs, searchDepth, err := se.fileGlobs(namespace)
+	if err != nil {
+		return []string{}, err
+	}
+
+	tagFindCmd := exec.Command(se.prog, append([]string{"--nofilename", se.tagLine, "--depth=" + searchDepth}, findGlobs...)...)
+
+	if output, cmdErr := tagFindCmd.Output(); cmdErr != nil {
+		rp.Errorf("COMMAND FAILED: %s %s\n\nERROR: %s", tagFindCmd.Path, tagFindCmd.Args, cmdErr)
+		rp.Errorf("%v", cmdErr)
+
+		return []string{}, cmdErr
+	} else {
+		allTagsMap := make(map[string]bool)
+		var allTags []string
+		lines := regexp.MustCompile(`\n+`).Split(
+			strings.TrimSpace(string(output)), -1,
+		)
+
+		for _, line := range lines {
+			tags := regexp.MustCompile(`\s+`).Split(
+				strings.TrimSpace(strings.Replace(line, se.tagLine, "", 1)), -1,
+			)
+
+			for _, tag := range tags {
+				allTagsMap[tag] = true
+			}
+		}
+
+		for tag, _ := range allTagsMap {
+			if len(filter) == 0 || regexp.MustCompile(filter).MatchString(tag) {
+				allTags = append(allTags, tag)
+			}
+		}
+
+		if len(allTags) == 0 {
+			return allTags, errors.New(NO_RESULTS_MSG)
+		}
+
+		sort.Strings(allTags)
+		return allTags, nil
+	}
+}
+
 func NewSearcherAg(fs afero.Fs) *searcher {
 	return &searcher{
-		prog:          "ag",
-		notesDirPath:  nconfig.NotesDirPath(),
-		tagLineFormat: nconfig.DefaultTaglineFormat(),
-		fs:            fs,
+		prog:         "ag",
+		notesDirPath: nconfig.NotesDirPath(),
+		tagLine:      nconfig.DefaultTaglineFormat(),
+		fs:           fs,
 	}
 }
 
 func NewSearcherMock(fs afero.Fs) *searcher {
 	return &searcher{
-		prog:          "ag",
-		notesDirPath:  nconfig.NotesDirMockPath(),
-		tagLineFormat: nconfig.DefaultTaglineFormat(),
-		fs:            fs,
+		prog:         "ag",
+		notesDirPath: nconfig.NotesDirMockPath(),
+		tagLine:      nconfig.DefaultTaglineFormat(),
+		fs:           fs,
 	}
 }
 
@@ -75,7 +124,7 @@ func (se *searcher) fileGlobs(namespace string) ([]string, string, error) {
 	searchDepth := "0"
 	var findGlobs []string
 
-	if namespace == "*" {
+	if namespace == ALL_NAMESPACES_PLACEHOLDER {
 		// all namespaces
 		findGlobs = []string{
 			notesPath,

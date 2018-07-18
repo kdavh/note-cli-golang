@@ -2,6 +2,7 @@ package cmdnnew
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/kdavh/note-cli-golang/nconfig"
 	"github.com/kdavh/note-cli-golang/neditor"
@@ -20,8 +21,8 @@ type Handler struct {
 	osCtrl    *nconfig.OsCtrl
 }
 
-func (hndl *Handler) CanHandle(commands []string) bool {
-	return len(commands) > 0 && hndl.handler.FullCommand() == commands[0]
+func (hndl *Handler) CanHandle(commands string) bool {
+	return strings.HasPrefix(commands, hndl.handler.FullCommand())
 }
 
 func (hndl *Handler) Run() bool {
